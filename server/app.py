@@ -10,13 +10,13 @@ global_model = CNNMnist()
 global_model.train()
 
 # Total of clients
-n_clients = 1
+n_clients = 100
 
 # List of client ids
 clients = []
 
 # Fraction of clients that must train local model on each epoch
-frac_to_train = 1.0
+frac_to_train = 0.10
 n_clients_to_train = frac_to_train * n_clients
 
 # List of clients that must train local model on each epoch
