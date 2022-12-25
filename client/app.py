@@ -81,7 +81,7 @@ def train():
 
 
 scheduler = BackgroundScheduler()
-scheduler.add_job(func=train, trigger="interval", seconds=15)
+scheduler.add_job(func=train, trigger="interval", seconds=60)
 scheduler.start()
 
 

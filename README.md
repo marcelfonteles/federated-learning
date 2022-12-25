@@ -26,7 +26,19 @@ Then run all the clients by executing the `start.sh` script
 ````
 sh start.sh
 ````
-By default this will start 20 clients on differents ports between 3001 and 3021.
+By default, this will start 20 clients on differents ports between 3001 and 3021.
 At each `global epoch` the server will randomly choose 10 clients the train theirs local models
  
 After the training you can use this route `localhost:<3001~3021>/predict` to predict
+
+### Running the experiments (with Docker)
+Build server docker image
+```
+docker build -t server -f Dockerfile .
+```
+
+Build client docker image
+```
+docker build -t client -f Dockerfile .
+```
+

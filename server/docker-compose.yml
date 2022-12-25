@@ -1,0 +1,22 @@
+version: '3.3'
+services:
+  server:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    volumes:
+      - .:/app
+    ports:
+      - 3000:5000
+    network_mode: 'host'
+
+  client:
+    build:
+      context: ../client
+      dockerfile: Dockerfile
+    ports:
+      - 3001:5000
+    restart: on-failure
+    depends_on:
+      - server
+    network_mode: 'host'
