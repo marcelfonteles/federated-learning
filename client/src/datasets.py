@@ -1,6 +1,7 @@
 from torchvision import datasets, transforms
 import numpy as np
 
+
 def get_dataset(num_users):
     data_dir = '../data/mnist/'
     apply_transform = transforms.Compose([

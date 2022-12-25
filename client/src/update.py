@@ -48,10 +48,10 @@ class LocalUpdate(object):
         model.train()
         epoch_loss = []
         learning_rate = 0.01
-        local_epochs = 10
+        local_epochs = 5
 
         # Set optimizer for the local updates
-        optimizer = torch.optim.SGD(model.parameters(), lr=learning_rate,momentum=0.5)
+        optimizer = torch.optim.SGD(model.parameters(), lr=learning_rate, momentum=0.5)
 
         for iter in range(local_epochs):
             batch_loss = []

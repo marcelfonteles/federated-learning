@@ -1,20 +1,16 @@
-from flask import Flask, Response
+from flask import Flask, request
 import pickle
 import requests
 from apscheduler.schedulers.background import BackgroundScheduler
 import copy
 
+import torch
+from PIL import Image
+from torchvision.transforms import ToTensor
+
 from src.models import CNNMnist
 from src.datasets import get_dataset
 from src.update import LocalUpdate
-
-
-####
-# Steps
-# initialization => get the global model from the server
-# randomly select data from dataset
-# this selection must be determined from how many clients we have.
-####
 
 # Initialization: get the last version of global model
 response = requests.post('http://localhost:3000/get_model')
@@ -24,8 +20,8 @@ local_model.load_state_dict(local_weights)
 local_model.train()
 
 # Initialization: randomly select the data from dataset for this client
-n_users = 1
-train_dataset, test_dataset, user_group = get_dataset(n_users)
+n_clients = 1
+train_dataset, test_dataset, user_group = get_dataset(n_clients)
 
 # Subscribing to server
 client_id = -1
@@ -37,36 +33,40 @@ app = Flask(__name__)
 
 # Configuring job to verify if they need to train
 def train():
-    response = requests.post('http://localhost:3000/get_clients_to_train')
-    clients_to_train = response.json()['clients']
-    print(f'client_id: {client_id}, clients_to_train: {clients_to_train}')
-    if clients_to_train.count(client_id):
+    global local_model, local_weights
+    headers = {'Content-Type': 'application/json'}
+    data = {"client_id": client_id}
+    res = requests.post('http://localhost:3000/get_clients_to_train', json=data, headers=headers)
+    res_json = res.json()
+    must_train = res_json['train']
+    print(f'| client_id: {client_id}, must_train: {must_train} |')
+    if must_train:
+        global_epoch = res_json['epoch']
         # Get the newest global model
-        reponse = requests.post('http://localhost:3000/get_model')
-        local_weights = pickle.loads(reponse.content)
+        res = requests.post('http://localhost:3000/get_model')
+        local_weights = pickle.loads(res.content)
         local_model = CNNMnist()
         local_model.load_state_dict(local_weights)
         local_model.train()
 
         # Get the training parameters (batch_size, n_epochs)
         local = LocalUpdate(dataset=train_dataset, idxs=user_group)
-        w, loss = local.update_weights(model=copy.deepcopy(local_model), global_round=1, client=client_id)
+        w, loss = local.update_weights(model=copy.deepcopy(local_model), global_round=global_epoch, client=client_id)
 
         # New local model with updated weights
         local_model.load_state_dict(w)
 
         # Send new local model to server
-        # model, client_id
         serialized = pickle.dumps(w)
         url = 'http://localhost:3000/send_model'
-        headers = {"Client-Id": '10', 'Content-Type': 'application/octet-stream'}
+        headers = {"Client-Id": str(client_id), 'Content-Type': 'application/octet-stream'}
         requests.post(url, data=serialized, headers=headers)
 
 
-# scheduler = BackgroundScheduler()
-# scheduler.add_job(func=train, trigger="interval", seconds=10)
-# scheduler.start()
-train()
+scheduler = BackgroundScheduler()
+scheduler.add_job(func=train, trigger="interval", seconds=15)
+scheduler.start()
+
 
 # Healthcheck route
 @app.route("/", methods=['GET', 'POST'])
@@ -86,4 +86,8 @@ def train():
 # Todo: Add a simple interface so the user can test.
 @app.route("/predict", methods=['POST'])
 def predict():
-    return {"hello": "world", "array": [1, 2, 3], "nested": {"again": 1}}
+    image = request.files['image']
+    img = Image.open(image)
+    img_tensor = ToTensor()(img).unsqueeze(0).to('cpu')
+    pred = torch.argmax(local_model(img_tensor))
+    return {"prediction": pred.item()}
