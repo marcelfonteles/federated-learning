@@ -2,6 +2,7 @@ import torch
 from torch import nn
 from torch.utils.data import DataLoader
 import copy
+from datetime import datetime
 
 
 def average_weights(w):
@@ -41,3 +42,14 @@ def test_inference(model, test_dataset):
 
     accuracy = correct/total
     return accuracy, loss
+
+
+def logging(message, write_to_file, filepath):
+    print(message)
+    if write_to_file:
+        try:
+            f = open(filepath, 'a')
+            f.write('[%s] %s \n' % (datetime.now(), message))
+            f.close()
+        except Exception as e:
+            print(e)

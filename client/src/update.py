@@ -2,6 +2,8 @@ import torch
 from torch import nn
 from torch.utils.data import DataLoader, Dataset
 
+from src.utils import logging
+
 class DatasetSplit(Dataset):
     """An abstract Dataset class wrapped around Pytorch Dataset class.
     """
@@ -43,7 +45,7 @@ class LocalUpdate(object):
                                 batch_size=int(len(idxs_test)/10), shuffle=False)
         return trainloader, validloader, testloader
 
-    def update_weights(self, model, global_round, client):
+    def update_weights(self, model, global_round, client, log_path):
         # Set mode to train model
         model.train()
         epoch_loss = []
@@ -65,10 +67,10 @@ class LocalUpdate(object):
                 optimizer.step()
 
                 if (batch_idx % 10 == 0):
-                    print('| Global Round : {} | client: {} | Local Epoch : {} | [{}/{} ({:.0f}%)]\tLoss: {:.6f}'.format(
+                    logging('| Global Round : {} | client: {} | Local Epoch : {} | [{}/{} ({:.0f}%)]\tLoss: {:.6f}'.format(
                         global_round, client, iter, batch_idx * len(images),
                         len(self.trainloader.dataset),
-                        100. * batch_idx / len(self.trainloader), loss.item()))
+                        100. * batch_idx / len(self.trainloader), loss.item()), write_to_file=True, filepath=log_path)
                 batch_loss.append(loss.item())
             epoch_loss.append(sum(batch_loss)/len(batch_loss))
 

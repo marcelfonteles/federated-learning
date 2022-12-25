@@ -1,7 +1,6 @@
 #!/bin/bash
-# Calculate the sum of two integers with pre initialize values
-# in a shell script
+"" > pids.txt
 port=3000
-for i in {1..3}; do
-  flask --app app.py run -h 0.0.0.0 -p $(( $port + $i)) & >> pids.txt
+for i in {1..10}; do
+  flask --app app.py run -h 0.0.0.0 -p $(( $port + $i)) & echo $! >> pids.txt
 done

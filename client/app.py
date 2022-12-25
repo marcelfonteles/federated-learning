@@ -3,6 +3,7 @@ import pickle
 import requests
 from apscheduler.schedulers.background import BackgroundScheduler
 import copy
+import os
 
 import torch
 from PIL import Image
@@ -11,6 +12,7 @@ from torchvision.transforms import ToTensor
 from src.models import CNNMnist
 from src.datasets import get_dataset
 from src.update import LocalUpdate
+from src.utils import logging
 
 # Initialization: get the last version of global model
 response = requests.post('http://localhost:3000/get_model')
@@ -28,6 +30,12 @@ client_id = -1
 response = requests.post('http://localhost:3000/subscribe')
 client_id = response.json()['id']
 
+# Log file path
+dirname = os.path.dirname(__file__)
+log_path = os.path.join(dirname, 'logs/' + str(client_id) + '.log')
+logging(f'| #### Starting a new client #### |', True, log_path)
+
+# Flask App
 app = Flask(__name__)
 
 
@@ -39,7 +47,7 @@ def train():
     res = requests.post('http://localhost:3000/get_clients_to_train', json=data, headers=headers)
     res_json = res.json()
     must_train = res_json['train']
-    print(f'| client_id: {client_id}, must_train: {must_train} |')
+    logging(f'| client_id: {client_id}, must_train: {must_train} |', True, log_path)
     if must_train:
         global_epoch = res_json['epoch']
         # Get the newest global model
@@ -51,7 +59,7 @@ def train():
 
         # Get the training parameters (batch_size, n_epochs)
         local = LocalUpdate(dataset=train_dataset, idxs=user_group)
-        w, loss = local.update_weights(model=copy.deepcopy(local_model), global_round=global_epoch, client=client_id)
+        w, loss = local.update_weights(model=copy.deepcopy(local_model), global_round=global_epoch, client=client_id, log_path=log_path)
 
         # New local model with updated weights
         local_model.load_state_dict(w)

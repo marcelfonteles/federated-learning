@@ -130,3 +130,10 @@ dmypy.json
 
 # Intellij
 .idea
+
+# Pids
+./client/pids.txt
+
+# Logs
+./client/logs/*.log
+./server/logs/*.log
