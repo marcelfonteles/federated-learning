@@ -22,7 +22,7 @@ class DatasetSplit(Dataset):
 class LocalUpdate(object):
     def __init__(self, dataset, idxs):
         self.device = 'cpu'
-        self.batch_size = 1000
+        self.batch_size = 100
         self.trainloader, self.validloader, self.testloader = self.train_val_test(dataset, list(idxs))
         # Default criterion set to NLL loss function
         self.criterion = nn.NLLLoss().to(self.device)
@@ -50,7 +50,7 @@ class LocalUpdate(object):
         model.train()
         epoch_loss = []
         learning_rate = 0.01
-        local_epochs = 5
+        local_epochs = 10
 
         # Set optimizer for the local updates
         optimizer = torch.optim.SGD(model.parameters(), lr=learning_rate, momentum=0.5)
@@ -68,7 +68,7 @@ class LocalUpdate(object):
 
                 if (batch_idx % 10 == 0):
                     logging('| Global Round : {} | client: {} | Local Epoch : {} | [{}/{} ({:.0f}%)]\tLoss: {:.6f}'.format(
-                        global_round, client, iter, batch_idx * len(images),
+                        global_round, client, iter+1, batch_idx * len(images),
                         len(self.trainloader.dataset),
                         100. * batch_idx / len(self.trainloader), loss.item()), write_to_file=True, filepath=log_path)
                 batch_loss.append(loss.item())

@@ -3,7 +3,7 @@ import pickle
 import numpy as np
 from src.models import CNNMnist
 from src.utils import average_weights, test_inference
-from src.datasets import get_dataset
+from src.datasets import get_test_dataset, get_user_group
 
 
 global_model = CNNMnist()
@@ -25,9 +25,14 @@ clients_to_train = []
 # List of weights after local training on each client
 clients_weights = []
 
+# Global Epochs
 n_epochs = 10
 current_epoch = 1
 
+# Client Data
+dict_users = {}
+
+# Flask App
 app = Flask(__name__)
 
 
@@ -35,6 +40,19 @@ app = Flask(__name__)
 @app.route("/", methods=['GET', 'POST'])
 def home():
     return {"message": "Server is running."}
+
+
+# Client will consume this route to get data from dataset.
+# In real life all clients will have their own data, but in this test we must
+#    guarantee that all clients have different data
+@app.route("/get_data", methods=['POST'])
+def get_data():
+    data = request.json
+    client_id = data['client_id']
+    dict_user = get_user_group(n_clients, dict_users)
+    dict_users[client_id] = dict_user
+
+    return {"dict_user": str(list(dict_user))}
 
 
 # Client will consume this route to check if they need to train theirs local model
@@ -86,12 +104,14 @@ def send_model():
             current_epoch += 1
         else:
             print('training is complete')
-            test_dataset = get_dataset()
+            test_dataset = get_test_dataset()
             test_acc, test_loss = test_inference(global_model, test_dataset)
 
             print(f' \n Results after {current_epoch} global rounds of training:')
             # print("|---- Avg Train Accuracy: {:.2f}%".format(100 * train_accuracy[-1]))
             print("|---- Test Accuracy: {:.2f}%".format(100 * test_acc))
+
+    return {}
 
 
 # This route will subscribe the client
