@@ -5,3 +5,4 @@ numpy
 tensorboardx
 matplotlib
 apscheduler
+Pillow

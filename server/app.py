@@ -2,7 +2,8 @@ from flask import Flask, Response, request
 import pickle
 import numpy as np
 from src.models import CNNMnist
-from src.utils import average_weights
+from src.utils import average_weights, test_inference
+from src.datasets import get_dataset
 
 
 global_model = CNNMnist()
@@ -39,7 +40,13 @@ def home():
 # Client will consume this route to check if they need to train theirs local model
 @app.route("/get_clients_to_train", methods=['POST'])
 def get_clients_to_train():
-    return {"clients": clients_to_train}
+    data = request.json
+    client_id = data['client_id']
+    if clients_to_train.count(client_id):
+        clients_to_train.remove(client_id)
+        return {"train": True, "epoch": current_epoch}
+    else:
+        return {"train": False}
 
 
 # Clients will consume this route to obtain the last version of the Global Model.
@@ -58,24 +65,33 @@ def get_model():
 # This endpoint will execute the fedAvg algorithm and return the new global model
 @app.route("/send_model", methods=['POST'])
 def send_model():
-    global clients_to_train, current_epoch
+    global clients_to_train, clients_weights, current_epoch
     weights = pickle.loads(request.data)
     clients_weights.append(weights)
     if len(clients_weights) == n_clients_to_train:
         # fedAvg
         # update global weights
-        global_weights = average_weights(weights)
+        print(f'Fazendo média | epoch {current_epoch}')
+        global_weights = average_weights(clients_weights)
 
         # update global weights
         global_model.load_state_dict(global_weights)
 
         # random select new clients
-        if current_epoch <= n_epochs:
+        if current_epoch < n_epochs:
+            print(f'Escolhendo novos clientes | epoch {current_epoch}')
+            clients_weights = []
             m = max(int(frac_to_train * n_clients), 1)
             clients_to_train = np.random.choice(range(n_clients), m, replace=False).tolist()
             current_epoch += 1
+        else:
+            print('training is complete')
+            test_dataset = get_dataset()
+            test_acc, test_loss = test_inference(global_model, test_dataset)
 
-    return {"hello": "world", "array": [1, 2, 3], "nested": {"again": 1}}
+            print(f' \n Results after {current_epoch} global rounds of training:')
+            # print("|---- Avg Train Accuracy: {:.2f}%".format(100 * train_accuracy[-1]))
+            print("|---- Test Accuracy: {:.2f}%".format(100 * test_acc))
 
 
 # This route will subscribe the client
