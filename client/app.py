@@ -22,7 +22,7 @@ local_model.load_state_dict(local_weights)
 local_model.train()
 
 # Initialization: randomly select the data from dataset for this client
-n_clients = 100
+n_clients = 20
 train_dataset, test_dataset, user_group = get_dataset(n_clients)
 
 # Subscribing to server
