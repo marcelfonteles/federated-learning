@@ -1,12 +1,20 @@
 from flask import Flask, Response, request
 import pickle
 import numpy as np
-from src.models import CNNMnist
+from src.models import CNNMnist, CNNCifar
 from src.utils import average_weights, test_inference
 from src.datasets import get_test_dataset, get_user_group
 
 
-global_model = CNNMnist()
+dataset = 'cifar10'  # or mnist
+if dataset == 'mnist':
+    # Training for MNIST
+    global_model = CNNMnist()
+else:
+    # Training for CIFAR10
+    global_model = CNNCifar()
+
+
 global_model.train()
 
 # Total of clients
@@ -49,7 +57,7 @@ def home():
 def get_data():
     data = request.json
     client_id = data['client_id']
-    dict_user = get_user_group(n_clients, dict_users)
+    dict_user = get_user_group(dataset, n_clients, dict_users)
     dict_users[client_id] = dict_user
 
     return {"dict_user": str(list(dict_user))}
@@ -104,7 +112,7 @@ def send_model():
             current_epoch += 1
         else:
             print('training is complete')
-            test_dataset = get_test_dataset()
+            test_dataset = get_test_dataset(dataset)
             test_acc, test_loss = test_inference(global_model, test_dataset)
 
             print(f' \n Results after {current_epoch} global rounds of training:')

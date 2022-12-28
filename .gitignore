@@ -137,3 +137,6 @@ dmypy.json
 # Logs
 ./client/logs/*.log
 ./server/logs/*.log
+
+# dataset files
+./data
