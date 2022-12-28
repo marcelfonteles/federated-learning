@@ -61,3 +61,7 @@ Build client docker image
 docker build -t client -f Dockerfile .
 ```
 
+### Results
+
+MNIST Test Accuracy using fedeated learning strategy: 96.67%
+
