@@ -10,7 +10,7 @@ import torch
 from PIL import Image
 from torchvision.transforms import ToTensor
 
-from src.models import CNNMnist
+from src.models import CNNMnist, CNNCifar
 from src.datasets import get_dataset
 from src.update import LocalUpdate
 from src.utils import logging
@@ -25,7 +25,15 @@ client_id = response.json()['id']
 # Initialization: get the last version of global model
 response = requests.post('http://localhost:3000/get_model')
 local_weights = pickle.loads(response.content)
-local_model = CNNMnist()
+
+dataset = 'cifar10'  # or mnist
+if dataset == 'mnist':
+    # Training for MNIST
+    local_model = CNNMnist()
+else:
+    # Training for CIFAR10
+    local_model = CNNCifar()
+
 local_model.load_state_dict(local_weights)
 local_model.train()
 
@@ -36,7 +44,7 @@ headers = {'Content-Type': 'application/json'}
 response = requests.post('http://localhost:3000/get_data', json={"client_id": client_id}, headers=headers)
 user_group = response.json()['dict_user']
 user_group = set(json.loads(user_group))
-train_dataset, test_dataset = get_dataset(n_clients)
+train_dataset, test_dataset = get_dataset(dataset, n_clients)
 
 
 # Log file path
@@ -62,7 +70,8 @@ def train():
         # Get the newest global model
         res = requests.post('http://localhost:3000/get_model')
         local_weights = pickle.loads(res.content)
-        local_model = CNNMnist()
+        # local_model = CNNMnist()
+        local_model = CNNCifar()
         local_model.load_state_dict(local_weights)
         local_model.train()
 
@@ -81,7 +90,7 @@ def train():
 
 
 scheduler = BackgroundScheduler()
-scheduler.add_job(func=train, trigger="interval", seconds=60)
+scheduler.add_job(func=train, trigger="interval", seconds=15)
 scheduler.start()
 
 
