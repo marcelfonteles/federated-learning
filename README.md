@@ -36,7 +36,39 @@ sent to the server and then the fedAvg algorithm will be executed to generate a 
 This process will repeat 10 times and after that we will have a global model ready to use for predictions for new data. 
 
 ### Running the experiments
-First start the server
+(Optional: If want to run with Mongo Express) Create a docker network
+```
+docker network create mongo-net
+```
+Start mongodb with docker
+```
+docker run \
+--name mongo-database \
+--network mongo-net \
+-p 27017:27017 \
+-e MONGO_INITDB_ROOT_USERNAME=root \
+-e MONGO_INITDB_ROOT_PASSWORD=password \
+-e MONGO_INITDB_DATABASE=models \
+-d mongo
+```
+(Optional) Start Mongo Express Dashboard
+```
+docker run \
+--name mongo-dashboard \
+--network mongo-net \
+--link mongo-database:mongo \
+-p 8081:8081 \
+-e ME_CONFIG_MONGODB_ADMINUSERNAME=root \
+-e ME_CONFIG_MONGODB_ADMINPASSWORD=password \
+-e ME_CONFIG_MONGODB_URL=mongodb://root:password@mongo-database:27017/ \
+-d mongo-express
+```
+Or use the docker-compose
+```
+docker-compose up -d
+```
+
+Start the server
 ```
 flask --app server/app.py run -h 0.0.0.0 -p 3000
 ```
