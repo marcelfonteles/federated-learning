@@ -20,13 +20,15 @@ from src.utils import logging
 client_id = -1
 response = requests.post('http://localhost:3000/subscribe')
 client_id = response.json()['id']
+if client_id == None:
+    raise 'No empty space left.'
 
 
 # Initialization: get the last version of global model
 response = requests.post('http://localhost:3000/get_model')
 local_weights = pickle.loads(response.content)
 
-dataset = 'cifar10'  # or mnist
+dataset = 'mnist'  # or mnist
 if dataset == 'mnist':
     # Training for MNIST
     local_model = CNNMnist()
@@ -39,7 +41,7 @@ local_model.train()
 
 
 # Initialization: randomly select the data from dataset for this client
-n_clients = 20
+n_clients = 10
 headers = {'Content-Type': 'application/json'}
 response = requests.post('http://localhost:3000/get_data', json={"client_id": client_id}, headers=headers)
 user_group = response.json()['dict_user']
@@ -70,8 +72,10 @@ def train():
         # Get the newest global model
         res = requests.post('http://localhost:3000/get_model')
         local_weights = pickle.loads(res.content)
-        # local_model = CNNMnist()
-        local_model = CNNCifar()
+        if dataset == 'mnist':
+            local_model = CNNMnist()
+        elif dataset == 'cifar10':
+            local_model = CNNCifar()
         local_model.load_state_dict(local_weights)
         local_model.train()
 

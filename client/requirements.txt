@@ -6,3 +6,4 @@ tensorboardx
 matplotlib
 apscheduler
 Pillow
+pymongo
