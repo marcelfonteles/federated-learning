@@ -21,9 +21,6 @@ else:
     global_model = CNNCifar()
 global_model.train()
 
-'''#########################'''
-'''Turning the server stateless'''
-
 # MongoDB Connection
 training_db = get_database()
 global_models_table = training_db.global_models
@@ -35,7 +32,7 @@ if len(records) == 0:  # create a new record on db
         'id': 1,
         'dataset': dataset,
         'serialized': serialized,
-        'totalEpochs': 1,
+        'totalEpochs': 10,
         'currentEpoch': 1,
         'isTraining': True,
         'createdAt': datetime.now(),
@@ -54,7 +51,7 @@ else:  # load or create from db
             'id': record['id'] + 1,
             'dataset': dataset,
             'serialized': serialized,
-            'totalEpochs': 5,
+            'totalEpochs': 10,
             'currentEpoch': 1,
             'isTraining': True,
             'createdAt': datetime.now(),
@@ -66,7 +63,7 @@ else:  # load or create from db
 n_clients = 10
 
 # Fraction of clients that must train local model on each epoch
-frac_to_train = 0.50
+frac_to_train = 1.00
 n_clients_to_train = frac_to_train * n_clients
 
 # Flask App
@@ -117,22 +114,25 @@ def get_clients_to_train():
         raise 'No Global Model Available'
     else:
         global_model_record = records[0]
+        global_current_epoch = records[0]['currentEpoch']
 
     records = [record for record in training_db.training_clients.find({'globalModelId': global_model_record['id']}).sort('id', pymongo.DESCENDING)]
     if len(records) == 0 or global_model_record['isTraining'] == False:
-        clients_to_train = []
+        return {"train": False}
     else:
+        training_clients_id = records[0]['id']
         clients_to_train = records[0]['clients']
+        trained_clients = records[0]['trainedClients']
+        clients_to_train_epoch = records[0]['currentEpoch']
 
-    records = [record for record in training_db.global_models.find().sort('id', pymongo.DESCENDING)]
-    if len(records) == 0:
-        current_epoch = 0
-    else:
-        current_epoch = records[0]['currentEpoch']
-
-    if clients_to_train.count(client_id):
+    if clients_to_train.count(client_id) and global_current_epoch == clients_to_train_epoch:
         clients_to_train.remove(client_id)
-        return {"train": True, "epoch": current_epoch}
+        trained_clients.append(client_id)
+        training_db.training_clients.update_one(
+            {'id': training_clients_id},
+            {'$set': {'clients': clients_to_train, 'trainedClients': trained_clients}}
+        )
+        return {"train": True, "epoch": global_current_epoch}
     else:
         return {"train": False}
 
@@ -226,20 +226,20 @@ def send_model():
             else:
                 training_clients_id = records[0]['id'] + 1
 
+            training_db.global_models.update_one(
+                {'id': global_model_record['id']},
+                {'$set': {'currentEpoch': global_model_record['currentEpoch'] + 1, 'updatedAt': datetime.now()}
+            })
+
             training_db.training_clients.insert_one({
                 'id': training_clients_id,
                 'clients': clients_id_to_train,
+                'trainedClients': [],
                 'globalModelId': global_model_record['id'],
                 'currentEpoch': global_model_record['currentEpoch'] + 1,
                 'createdAt': datetime.now(),
                 'updatedAt': datetime.now(),
             })
-
-            training_db.global_models.update_one(
-                {'id': global_model_record['id']},
-                {'$set': {'currentEpoch': global_model_record['currentEpoch'] + 1, 'updatedAt': datetime.now()}
-                 })
-
         else:
             training_db.global_models.update_one(
                 {'id': global_model_record['id']},
@@ -298,6 +298,7 @@ def subscribe():
             training_db.training_clients.insert_one({
                 'id': training_clients_id,
                 'clients': clients_id_to_train,
+                'trainedClients': [],
                 'globalModelId': global_model_id,
                 'currentEpoch': 1,
                 'createdAt': datetime.now(),
