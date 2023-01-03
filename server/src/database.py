@@ -1,8 +1,12 @@
 from pymongo import MongoClient, ASCENDING, DESCENDING
+import os
 
 
 def get_database():
-    client = MongoClient('localhost', 27017, username='root', password='password')
+    try:
+        client = MongoClient(os.environ['MONGODB_URL'], 27017, username='root', password='password')
+    except Exception as e:
+        client = MongoClient('localhost', 27017, username='root', password='password')
     return client.training
 
 

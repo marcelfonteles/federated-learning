@@ -15,17 +15,17 @@ from src.datasets import get_dataset
 from src.update import LocalUpdate
 from src.utils import logging
 
-
+base_url = 'http://localhost:3000/'
 # Subscribing to server
 client_id = -1
-response = requests.post('http://localhost:3000/subscribe')
+response = requests.post(base_url + 'subscribe')
 client_id = response.json()['id']
 if client_id == None:
     raise 'No empty space left.'
 
 
 # Initialization: get the last version of global model
-response = requests.post('http://localhost:3000/get_model')
+response = requests.post(base_url + 'get_model')
 local_weights = pickle.loads(response.content)
 
 dataset = 'mnist'  # or mnist
@@ -43,7 +43,7 @@ local_model.train()
 # Initialization: randomly select the data from dataset for this client
 n_clients = 10
 headers = {'Content-Type': 'application/json'}
-response = requests.post('http://localhost:3000/get_data', json={"client_id": client_id}, headers=headers)
+response = requests.post(base_url + 'get_data', json={"client_id": client_id}, headers=headers)
 user_group = response.json()['dict_user']
 user_group = set(json.loads(user_group))
 train_dataset, test_dataset = get_dataset(dataset, n_clients)
@@ -63,14 +63,14 @@ def train():
     global local_model, local_weights
     headers = {'Content-Type': 'application/json'}
     data = {"client_id": client_id}
-    res = requests.post('http://localhost:3000/get_clients_to_train', json=data, headers=headers)
+    res = requests.post(base_url + 'get_clients_to_train', json=data, headers=headers)
     res_json = res.json()
     must_train = res_json['train']
     logging(f'| client_id: {client_id}, must_train: {must_train} |', True, log_path)
     if must_train:
         global_epoch = res_json['epoch']
         # Get the newest global model
-        res = requests.post('http://localhost:3000/get_model')
+        res = requests.post(base_url + 'get_model')
         local_weights = pickle.loads(res.content)
         if dataset == 'mnist':
             local_model = CNNMnist()
@@ -88,7 +88,7 @@ def train():
 
         # Send new local model to server
         serialized = pickle.dumps(w)
-        url = 'http://localhost:3000/send_model'
+        url = base_url + 'send_model'
         headers = {"Client-Id": str(client_id), 'Content-Type': 'application/octet-stream'}
         requests.post(url, data=serialized, headers=headers)
 
