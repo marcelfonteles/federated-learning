@@ -65,7 +65,7 @@ docker run \
 ```
 Or use the docker-compose
 ```
-docker-compose up -d
+docker-compose up -d mongo mongo-express
 ```
 
 Start the server

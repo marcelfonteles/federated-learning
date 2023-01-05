@@ -22,7 +22,7 @@ class DatasetSplit(Dataset):
 class LocalUpdate(object):
     def __init__(self, dataset, idxs):
         self.device = 'cpu'
-        self.batch_size = 100
+        self.batch_size = 50
         self.trainloader, self.validloader, self.testloader = self.train_val_test(dataset, list(idxs))
         # Default criterion set to NLL loss function
         self.criterion = nn.NLLLoss().to(self.device)

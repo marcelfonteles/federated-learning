@@ -35,6 +35,7 @@ if len(records) == 0:  # create a new record on db
         'totalEpochs': 10,
         'currentEpoch': 1,
         'isTraining': True,
+        'testAccuracy': 0,
         'createdAt': datetime.now(),
         'updatedAt': datetime.now(),
     })
@@ -193,6 +194,7 @@ def send_model():
             {'$set': {'model': request.data, 'epoch': global_model_record['currentEpoch'], 'updatedAt': datetime.now()}}
         )
 
+    # This code bellow must go to another endpoint or go to a cronjob, so we can guarantee that will create only one record for epoch.
     clients_weights = []
     find_query = {
         'epoch': global_model_record['currentEpoch'],
@@ -252,6 +254,10 @@ def send_model():
             print(f' \n Results after {current_epoch} global rounds of training:')
             # print("|---- Avg Train Accuracy: {:.2f}%".format(100 * train_accuracy[-1]))
             print("|---- Test Accuracy: {:.2f}%".format(100 * test_acc))
+            training_db.global_models.update_one(
+                {'id': global_model_record['id']},
+                {'$set': {'testAccuracy': test_acc, 'updatedAt': datetime.now()}
+            })
 
     return {}
 
